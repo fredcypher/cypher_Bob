@@ -1,0 +1,307 @@
+{
+  "metadata": {
+    "generated": "4/25/2026, 11:13:40 AM"
+  },
+  "rules": {
+    "D0_B_FLP": {
+      "Ck": {
+        "Cs": false,
+        "Bs": true,
+        "Fs": true,
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Bk": {
+        "Cs": true,
+        "Bs": true,
+        "Fs": true,
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Fk": {
+        "Cs": true,
+        "Bs": true,
+        "Fs": true,
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Cs": {
+        "Cs": false,
+        "Bs": false,
+        "Fs": false,
+        "Ck": true,
+        "Bk": false,
+        "Fk": false
+      },
+      "Bs": {
+        "Cs": false,
+        "Bs": false,
+        "Fs": false,
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Fs": {
+        "Cs": false,
+        "Bs": false,
+        "Fs": false,
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      }
+    },
+    "D0_B_FLP_PthCR": {
+      "Ck": {
+        "Cs": false,
+        "Bs": false,
+        "Fs": false,
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Bk": {
+        "Cs": false,
+        "Bs": false,
+        "Fs": false,
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Fk": {
+        "Cs": false,
+        "Bs": false,
+        "Fs": false,
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Cs": {
+        "Cs": false,
+        "Bs": false,
+        "Fs": false,
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Bs": {
+        "Cs": false,
+        "Bs": false,
+        "Fs": false,
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Fs": {
+        "Cs": false,
+        "Bs": false,
+        "Fs": false,
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      }
+    },
+    "D0_B_FlpCal_AdjP": {
+      "Ck": {
+        "Cs": false,
+        "Bs": true,
+        "Fs": true,
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Bk": {
+        "Cs": true,
+        "Bs": true,
+        "Fs": true,
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Fk": {
+        "Cs": true,
+        "Bs": true,
+        "Fs": true,
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Cs": {
+        "Cs": false,
+        "Bs": false,
+        "Fs": false,
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Bs": {
+        "Cs": false,
+        "Bs": false,
+        "Fs": false,
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Fs": {
+        "Cs": false,
+        "Bs": false,
+        "Fs": false,
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      }
+    },
+    "D0_B_FlpCal_NAdjP": {
+      "Ck": {
+        "Cs": false,
+        "Bs": false,
+        "Fs": false,
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Bk": {
+        "Cs": false,
+        "Bs": false,
+        "Fs": false,
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Fk": {
+        "Cs": false,
+        "Bs": false,
+        "Fs": false,
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Cs": {
+        "Cs": false,
+        "Bs": false,
+        "Fs": false,
+        "Ck": true,
+        "Bk": false,
+        "Fk": false
+      },
+      "Bs": {
+        "Cs": false,
+        "Bs": false,
+        "Fs": false,
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Fs": {
+        "Cs": false,
+        "Bs": false,
+        "Fs": false,
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      }
+    },
+    "FLP_Gate_K_S": {
+      "Ck": {
+        "Cs": false,
+        "Bs": true,
+        "Fs": true,
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Bk": {
+        "Cs": true,
+        "Bs": true,
+        "Fs": true,
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Fk": {
+        "Cs": true,
+        "Bs": true,
+        "Fs": true,
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Cs": {
+        "Cs": false,
+        "Bs": false,
+        "Fs": false,
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Bs": {
+        "Cs": false,
+        "Bs": false,
+        "Fs": false,
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Fs": {
+        "Cs": false,
+        "Bs": false,
+        "Fs": false,
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      }
+    },
+    "FLP_Gate_S_K": {
+      "Ck": {
+        "Cs": false,
+        "Bs": false,
+        "Fs": false,
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Bk": {
+        "Cs": false,
+        "Bs": false,
+        "Fs": false,
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Fk": {
+        "Cs": false,
+        "Bs": false,
+        "Fs": false,
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Cs": {
+        "Cs": false,
+        "Bs": false,
+        "Fs": false,
+        "Ck": true,
+        "Bk": false,
+        "Fk": false
+      },
+      "Bs": {
+        "Cs": false,
+        "Bs": false,
+        "Fs": false,
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Fs": {
+        "Cs": false,
+        "Bs": false,
+        "Fs": false,
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      }
+    }
+  }
+}

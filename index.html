@@ -1,0 +1,2016 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Cypher Chess - v47.7 Protocol</title>
+    <style>
+        body { background: #1a1a1a; color: #e0e0e0; font-family: 'Courier New', Courier, monospace; display: flex; flex-direction: column; align-items: center; margin: 0; padding: 20px; }
+        h1 { 
+    letter-spacing: 12px; 
+    color: #00ff41; 
+    font-family: 'Andale Mono', 'Courier New', monospace;
+    text-transform: uppercase;
+    text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+    margin-bottom: 30px;
+    font-weight: lighter;
+}
+         #game-container { display: flex; gap: 30px; align-items: flex-start; }
+       #board-wrapper { 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    background: #d2b48c; 
+    border: 4px solid #8b4513; 
+    border-radius: 4px; 
+    padding: 10px; 
+    box-shadow: 0 0 50px rgba(0,0,0,0.8); 
+}
+
+/* This allows the Left Labels and Board to sit side-by-side */
+#middle-row { 
+    display: flex; 
+    flex-direction: row; 
+    align-items: flex-start; 
+}
+
+#chessboard { 
+    display: grid; 
+    grid-template-columns: repeat(10, 60px); 
+    grid-template-rows: repeat(11, 60px); 
+    border: 2px solid #333; 
+}
+
+/* Standardized labels for the 60px grid */
+.col-labels { 
+    display: flex; 
+    margin-left: 35px; /* Matches the width of the row-labels */
+    height: 35px; 
+}
+
+.row-labels { 
+    display: flex; 
+    flex-direction: column; 
+    width: 35px; 
+}
+
+/* This is the class your JS will use to style the letters/numbers */
+.label { 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    font-size: 14px; 
+    font-weight: bold; 
+    color: #5d2e0a; /* Dark wood brown to match the theme */
+    font-family: 'Courier New', monospace;
+}
+
+.col-labels .label { width: 60px; height: 35px; }
+.row-labels .label { width: 35px; height: 60px; }
+        .tile { width: 60px; height: 60px; position: relative; display: flex; align-items: center; justify-content: center; background-size: cover; cursor: pointer; pointer-events: auto !important;
+    cursor: pointer; }
+        .selected-tile { outline: 4px solid #00ff00; z-index: 20; filter: brightness(1.2); box-shadow: inset 0 0 15px rgba(0,255,0,0.5); }
+        .piece-img { width: 90%; height: 90%; pointer-events: none; z-index: 10; }
+        .tile.invader-glow { box-shadow: inset 0 0 20px rgba(255, 0, 0, 0.8); border: 2px solid red; animation: pulse 1.5s infinite; }
+    /* 1. Base Piece Styling */
+        .piece {
+            transition: all 0.4s ease-in-out; /* 'all' covers position and transforms */
+            z-index: 10;
+            width: 90%;
+            height: 90%;
+            pointer-events: none;
+            pointer-events: auto !important;
+            
+    cursor: pointer;
+        }
+
+        /* 2. Dormant State (Apron/Court/Standby) */
+        .piece.dormant {
+    /* Reversing the gray/faded effect */
+    opacity: 1.0; 
+    filter: none; 
+    transform: scale(1.0); 
+}
+
+        /* 3. Moving State (In-Flight) */
+        .piece.moving {
+            z-index: 100; 
+            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+            transform: scale(1.1); /* Slight 'lift' effect during movement */
+        }
+
+        @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
+/* Merged and Refined Interface CSS */
+#game-log {
+    width: 320px;
+    background: #0d0d0d;
+    color: #00ff41;
+    padding: 15px;
+    border: 1px solid #004400;
+    box-shadow: inset 0 0 10px #000, 0 0 20px rgba(0, 255, 65, 0.1);
+    /* Applying Andale Mono as requested */
+    font-family: 'Andale Mono', 'Courier New', monospace; 
+    position: relative;
+    overflow: hidden;
+}
+
+#move-history {
+    font-size: 12px;
+    line-height: 1.6;
+    height: 580px;
+    overflow-y: auto;
+    /* Custom scrollbar for terminal look */
+    scrollbar-width: thin;
+    scrollbar-color: #004400 #0d0d0d;
+}
+
+#move-history::-webkit-scrollbar { display: none; } /* Hide for Chrome/Safari */
+
+/* Scanline Overlay */
+#game-log::after {
+    content: " ";
+    display: block;
+    position: absolute;
+    top: 0; left: 0; bottom: 0; right: 0;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%);
+    background-size: 100% 4px;
+    z-index: 10;
+    pointer-events: none;
+    opacity: 0.3;
+}
+/* Cursor blink effect for the latest entry */
+.terminal-line::after {
+    content: "_";
+    animation: blink 1s infinite;
+}
+
+@keyframes blink { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
+
+    </style>
+</head>
+<body>
+    <h1>cypher chess</h1>
+    
+    <div id="game-container">
+        <div id="board-wrapper">
+            <div class="col-labels" id="top-labels"></div>
+            
+            <div id="middle-row">
+                <div class="row-labels" id="left-labels"></div>
+                <div id="chessboard"></div>
+            </div>
+
+            <div class="col-labels" id="bottom-labels"></div>
+        </div>
+        <div id="game-log">
+            <div id="interface-header" style="font-size: 13px; border-bottom: 1px solid #004400; padding-bottom: 5px; margin-bottom: 10px;">
+                CYPHER_MOVE_ARCHIVE_v63
+            </div>
+            <div id="minimax-counter" style="background: rgba(0,0,0,0.4); color: white; padding: 10px; font-family: monospace; border: 1px solid #004400; border-radius: 4px; margin-bottom: 10px;">
+    <div style="color: #00ff00; font-size: 12px;">WHITE_BV: <span id="white-bv">0</span></div>
+    <div style="color: #ff4444; font-size: 12px;">BLACK_BV: <span id="black-bv">0</span></div>
+    <div id="ai-status" style="font-size: 10px; color: #888; margin-top: 5px; border-top: 1px solid #002200; padding-top: 3px;">
+        AI_THINK_LOG: Idle
+    </div>
+</div>
+            <div id="move-history"></div>
+            <div id="system-status" style="font-size: 9px; color: #004400; margin-top: 15px; border-top: 1px solid #002200; padding-top: 5px;">
+                STATUS: <span style="color: #008800;">MONITORING_TRUTH_CHAIN...</span>
+            </div>
+        </div>
+    </div>
+</body>
+    <script>
+        "use strict";
+window.CypherManager = {
+    boardIndex: {}, 
+    state: {
+        activeTurn: 'White',
+        lastMoveBy: 'Black',   
+        subState: 'Normal',    
+        _defaultState: 'D1', 
+        positionHistory: [],
+        cypherRegistry: [],
+        triggeringColor: null, 
+        lastMove: null,
+        selectedPiece: null,
+
+        // --- COUNTERS ---
+        // These manage the "Lease" on special rules (FI and CE)
+        counters: {
+            moveRecord: 0,    
+            transition: 0,    
+            invasion: 0,      // Field Invasion retake window
+            courtEntry: 0     // Court Entry transition window
+        }, 
+
+        // 1. The dynamic "Switchboard" Getter
+        // This automatically flavors the Hierarchy based on the tempo
+        get defaultState() { 
+            const base = this._defaultState;
+            // If the counter is at 1 (The Initiator's window), 
+            // the state effectively becomes "D1_CE" or "D2_CE"
+            return this.counters.courtEntry === 1 ? `${base}_CE` : base;
+        },
+
+        // 2. The Hierarchy Setter
+        // Validates incoming D-level changes against CCCM protocols
+        set defaultState(val) { 
+            const cleanVal = String(val).toUpperCase();
+            if (['D1', 'D2', 'D3'].includes(cleanVal)) {
+                this._defaultState = cleanVal;
+            } else {
+                console.error(`PROTOCOL VIOLATION: '${val}' is not a valid CCCM Hierarchy State.`);
+            }
+        }
+    },
+
+generateBoardFingerprint: function() {
+    let fingerprint = this.state.activeTurn + "|";
+    for (const coord in this.boardIndex) {
+        const piece = this.boardIndex[coord].piece;
+        if (piece) {
+            fingerprint += `${coord}:${piece.type}${piece.color},`;
+        }
+    }
+    return fingerprint;
+},
+
+    /**
+     * Protocol Step 0: Geography Initialization
+     * Populates the Truth Chain with empty coordinates and sectors.
+     */
+initBoardIndex: function() {
+    const columns = ['z', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'];
+    this.boardIndex = {}; // Ensure it's empty before starting
+
+    // 1. Physical Grid & Sector Tagging
+    for (let row = 0; row <= 10; row++) {
+        columns.forEach(col => {
+            const coord = `${col}${row}`;
+            this.boardIndex[coord] = {
+                sectorTag: this.getSector(coord),
+                piece: null 
+            };
+        });
+    }
+    
+    // 2. Immediate Piece Placement
+    // We do this immediately now so the board is ready for the first render
+    this.initializePieces(); 
+    console.log("✅ GEOGRAPHY ANCHORED: 110 Coordinates mapped with pieces.");
+},
+
+initializePieces: function() {
+    const w = 'white_png/white_';
+    const b = 'black_png/black_';
+
+    const initialSetup = {
+        // --- WHITE PIECES ---
+        'd0': { type: 'Spy', color: 'white', asset: w + 'spy' },
+        'b1': { type: 'Rook', color: 'white', asset: w + 'rook_Left' },
+        'g1': { type: 'Rook', color: 'white', asset: w + 'rook_Right' },
+        'c1': { type: 'Knight', color: 'white', asset: w + 'knight_Left' },
+        'f1': { type: 'Knight', color: 'white', asset: w + 'knight_Right' },
+        'c2': { type: 'Bishop', color: 'white', asset: w + 'bishop_Left' },
+        'f2': { type: 'Bishop', color: 'white', asset: w + 'bishop_Right' },
+        'd2': { type: 'Queen', color: 'white', asset: w + 'queen' },
+        'e2': { type: 'King', color: 'white', asset: w + 'king' },
+
+        // --- BLACK PIECES ---
+        'd10': { type: 'Spy', color: 'black', asset: b + 'spy' },
+        'b9': { type: 'Rook', color: 'black', asset: b + 'rook_Left' },
+        'g9': { type: 'Rook', color: 'black', asset: b + 'rook_Right' },
+        'c9': { type: 'Knight', color: 'black', asset: b + 'knight_Left' },
+        'f9': { type: 'Knight', color: 'black', asset: b + 'knight_Right' },
+        'c8': { type: 'Bishop', color: 'black', asset: b + 'bishop_Left' },
+        'f8': { type: 'Bishop', color: 'black', asset: b + 'bishop_Right' },
+        'd8': { type: 'Queen', color: 'black', asset: b + 'queen' },
+        'e8': { type: 'King', color: 'black', asset: b + 'king' }
+    };
+
+    // 1. Clear existing pieces
+    Object.keys(this.boardIndex).forEach(coord => {
+        this.boardIndex[coord].piece = null;
+    });
+
+    // 2. Inject Major Pieces
+    Object.entries(initialSetup).forEach(([coord, pieceData]) => {
+        if (this.boardIndex[coord]) {
+            this.boardIndex[coord].piece = pieceData;
+        }
+    });
+
+    // 3. Inject Pawns with Alternating Assets (1 and 2)
+    const columns = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+    columns.forEach((col, index) => {
+        // Alternates 1, 2, 1, 2...
+        const pawnNum = (index % 2) + 1; 
+
+        // White Pawns on Rank 3
+        this.boardIndex[`${col}3`].piece = { 
+            type: 'Pawn', 
+            color: 'white', 
+            asset: `${w}pawn_${pawnNum}` 
+        };
+
+        // Black Pawns on Rank 7
+        this.boardIndex[`${col}7`].piece = { 
+            type: 'Pawn', 
+            color: 'black', 
+            asset: `${b}pawn_${pawnNum}` 
+        };
+    });
+
+    console.log("INITIALIZATION: Major pieces and alternating pawns placed.");
+},
+
+checkBoilerplateMovement: function(piece, start, end) {
+  
+    // --- STANDARD GEOMETRY (Boilerplate) ---
+    const colMap = ['z', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'];
+    const x1 = colMap.indexOf(start[0]), y1 = parseInt(start.slice(1));
+    const x2 = colMap.indexOf(end[0]), y2 = parseInt(end.slice(1));
+    const dx = Math.abs(x2 - x1), dy = Math.abs(y2 - y1);
+
+    switch (piece.type) {
+        case 'King':   return dx <= 1 && dy <= 1;
+        case 'Queen':  return dx === dy || dx === 0 || dy === 0;
+        case 'Spy':    return dx === dy || dx === 0 || dy === 0;
+        case 'Rook':   return dx === 0 || dy === 0;
+        case 'Bishop': return dx === dy;
+        case 'Knight':
+            const startSector = this.getSector(start);
+            const endSector = this.getSector(end);
+
+            // Rule vii: When entering Court, must be classical L (2,1)
+            if (endSector === 'C' && startSector !== 'C') {
+                return (dx === 2 && dy === 1) || (dx === 1 && dy === 2);
+            }
+
+            // Rule viii: Court Knight moving/exiting must be extended L (3,1)
+            if (startSector === 'C') {
+                return (dx === 3 && dy === 1) || (dx === 1 && dy === 3);
+            }
+
+            // Rule vi: Border Knight can do either
+            if (startSector === 'B') {
+                const isClassical = (dx === 2 && dy === 1) || (dx === 1 && dy === 2);
+                const isExtended = (dx === 3 && dy === 1) || (dx === 1 && dy === 3);
+                return isClassical || isExtended;
+            }
+
+            // Rule v: Field Knight is classical only
+            return (dx === 2 && dy === 1) || (dx === 1 && dy === 2);
+        case 'Pawn':
+            const dir = piece.color === 'white' ? 1 : -1;
+            const isCapture = !!this.boardIndex[end].piece;
+            // Capture diagonal, move forward 1, or move forward 2 from starting ranks (3 or 7)
+            if (isCapture) return dx === 1 && (y2 - y1) === dir;
+            return dx === 0 && (y2 - y1 === dir || (y2 - y1 === 2 * dir && (y1 === 3 || y1 === 7)));
+        default: return false;
+    }
+},
+
+// --- SENSORY SUITE: For AI "Ratio Index" ---
+    getLowestThreateningValue: function(targetSquare, attackerColor) {
+    let lowestValue = Infinity;
+    // Map piece types to Bob's value matrix
+    const valMatrix = { 'Pawn': 10, 'Knight': 30, 'Bishop': 30, 'Rook': 50, 'Queen': 90, 'King': 1000, 'Spy': 40 };
+
+    for (let [coord, cell] of Object.entries(this.boardIndex)) {
+        const piece = cell.piece;
+        
+        // 1. Only look at the opponent's pieces
+        if (piece && piece.color === attackerColor) {
+            
+            // 2. Check if the piece's pattern allows reaching the square
+            // 3. Ensure the path to that square is not blocked
+            if (this.checkBoilerplateMovement(piece, coord, targetSquare) && 
+                this.isPathClear(coord, targetSquare)) {
+                
+                const val = valMatrix[piece.type] || 0;
+                if (val < lowestValue) {
+                    lowestValue = val;
+                }
+            }
+        }
+    }
+    // Return 0 if no threats are found to avoid math errors in the weight calculation
+    return lowestValue === Infinity ? 0 : lowestValue;
+},
+
+    isSquareThreatened: function(targetSquare, attackerColor) {
+        for (let coord in this.boardIndex) {
+            let cell = this.boardIndex[coord];
+            if (cell.piece && cell.piece.color === attackerColor) {
+                if (this.checkBoilerplateMovement(cell.piece, coord, targetSquare) && 
+                    this.isPathClear(coord, targetSquare)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    },
+
+    // 3. GEOGRAPHY & TAGGING
+    getSector: function(coord) {
+        const col = coord.charAt(0);
+        const row = parseInt(coord.slice(1));
+        
+        // The Apron (Court): Columns Z and I, Rows 0 and 10
+        if (col === 'z' || col === 'i' || row === 0 || row === 10) return 'C';
+        
+        // The Equator (Border): Row 5, Columns a-h
+        if (row === 5 && col >= 'a' && col <= 'h') return 'B';
+        
+        // The Interior (Field): Rows 1-4 and 6-9, Columns a-h
+        return 'F';
+    },
+
+    getProtocolIdentity: function(piece, coord) {
+    if (!piece) return "??";
+    const sector = this.getSector(coord);
+    
+    // Maps internal types to the JSON protocol letters
+    const typeMap = {
+        'Queen': 'q', 'Rook': 'r', 'Bishop': 'b', 
+        'Knight': 'n', 'Pawn': 'p', 'Spy': 's', 'King': 'k'
+    };
+    
+    // Special Case: Pawn Evolution (Fp -> Ffp -> Fffp)
+    if (piece.type === 'Pawn' && sector === 'F') {
+        const row = parseInt(coord.slice(1));
+        if (piece.color === 'white') {
+            if (row === 9) return "Fffp";
+            if (row === 7 || row === 8) return "Ffp";
+        } else {
+            if (row === 1) return "Fffp";
+            if (row === 2 || row === 3) return "Ffp";
+        }
+    }
+    
+    const typeLetter = typeMap[piece.type] || 'p';
+    return `${sector}${typeLetter}`; // e.g. "Fb"
+},
+
+getSectorPieceTag: function(piece, coord) {
+    // 🚩 THE BULLETPROOF VEST: If there's no piece, don't try to tag it.
+    if (!piece) return "Empty"; 
+
+    const sector = this.getSector(coord); 
+    const row = parseInt(coord.slice(1));
+    
+    console.log(`🏷️ TAGGING: Coord ${coord} | Row Parsed as: ${row} | Sector: ${sector}`);
+
+    // 1. Handle Pawn Evolution
+    if (piece.type === 'Pawn' && sector === 'F') {
+        if (piece.color === 'white') {
+            if (row === 9) return "Fffp";
+            if (row === 7 || row === 8) return "Ffp";
+            return "Fp";
+        }
+        if (piece.color === 'black') {
+            if (row === 1) return "Fffp";
+            if (row === 2 || row === 3) return "Ffp";
+            return "Fp";
+        }
+    }
+
+    // 2. Standard Tagging
+    const typeMap = {
+        'King': 'k', 'Queen': 'q', 'Bishop': 'b', 
+        'Knight': 'n', 'Rook': 'r', 'Pawn': 'p', 'Spy': 's'
+    };
+    const pType = typeMap[piece.type] || piece.type.charAt(0).toLowerCase();
+    
+    return `${sector}${pType}`; 
+},
+ 
+getPermissionTable: function(actionType, pieceColor) {
+    let ds = String(this.state.defaultState || "D1").toUpperCase().split('_')[0]; 
+    const ss = this.state.subState;
+    const activePlayer = this.state.activeTurn.toLowerCase();
+
+    // TEMPO GUARD: Only provide the specialized substate table to the active player
+    if (pieceColor !== activePlayer) {
+        return `${ds}_${actionType === "move" ? "MvP" : "CpP"}`; 
+    }
+
+    const suffix = actionType === "move" ? "MvP" : "CpP";
+
+    // FIELD INVASION ROUTE: Satisfies both live gameplay counters and diagnostic state mockings
+    if (ss === "FI" || this.state.counters.invasion > 0) {
+        return `${ds}_${suffix}_FI`;
+    }
+
+    // COURT ENTRY ROUTE
+    if (ss === "CE") {
+        return `${ds}_CE_${suffix}`; 
+    }
+
+    return `${ds}_${suffix}`;
+},
+
+getProtocolKey: function(piece, coord) {
+    if (!piece) return null;
+
+    // 1. Get the Sector Tag (F, B, or C) 
+    const sector = this.getSector(coord); 
+
+    // 2. Identify the Piece Type Initial
+    // Knight = n, Spy = s, others = first letter
+    let typeChar = '';
+    const type = piece.type.toLowerCase();
+
+    if (type === 'knight') { typeChar = 'n'; }
+    else if (type === 'spy') { typeChar = 's'; }
+    else { typeChar = type.charAt(0); }
+
+    // 3. Construct (e.g., 'F' + 'r' = 'Fr')
+    // Ensure TitleCase for JSON header matching
+    const key = sector + typeChar;
+    return key.charAt(0).toUpperCase() + key.slice(1);
+},
+
+getMovementChart: function() {
+    const status = this.state.status;
+    const invasionCounter = this.state.counters.invasion;
+
+    // CIRCUIT PRIORITY 1: Field Invasion (High Voltage)
+    if (invasionCounter > 0) {
+        return "FI"; // We use the prefix to find the JSON key
+    } 
+    
+    // CIRCUIT PRIORITY 2: Court Entry
+    if (status === 'CE') {
+        return "CE";
+    }
+
+    // DEFAULT CIRCUIT: Normal
+    return "Normal";
+},
+executeMove: function(startCoord, endCoord, isFlip) {
+    const board = this.boardIndex;
+
+    // 1. EXISTENCE GUARD
+    if (!board[startCoord]) {
+        console.error(`GEOGRAPHY ERROR: Square ${startCoord} not found.`);
+        return;
+    }
+
+    const actor = board[startCoord].piece;
+    const target = board[endCoord] ? board[endCoord].piece : null;
+
+    if (!actor) {
+        console.warn(`VALIDATION FAILURE: No piece at ${startCoord}.`);
+        return;
+    }
+
+    // 2. Capture Sector Data
+    const moveRecord = {
+        piece: actor,
+        fromSector: board[startCoord].sectorTag,
+        toSector: board[endCoord] ? board[endCoord].sectorTag : "Unknown",
+        isCapture: !!target,
+        targetPieceType: target ? target.type : null,
+        isFlip: isFlip 
+    };
+
+    // 3. PHYSICAL UPDATE (The Truth Chain)
+    this.boardIndex[endCoord].piece = actor;
+    this.boardIndex[startCoord].piece = null;
+
+    // 4. Internal State Sync
+    const currentColor = actor.color.charAt(0).toUpperCase() + actor.color.slice(1).toLowerCase();
+    this.state.lastMoveBy = currentColor; 
+
+    this.detectStateTransition(moveRecord);
+    this.updateBoardState();
+
+    // 5. THE RESOLUTION (Crucial: Must happen before Archiver)
+    // This handles Adjacency Flips AND the Shadow Line Court Flips
+    const flipVictoryDetected = this.resolveFlipVictory(endCoord); 
+
+    // --- 6. THE ARCHIVER BRIDGE ---
+    const opponentColor = (actor.color === 'white') ? 'black' : 'white';
+    let isCheckForArchive = false;
+
+    try {
+        let enemyKingPos = this.findKing(opponentColor);
+        if (enemyKingPos && typeof this.checkScan === 'function') {
+            const status = this.checkScan(actor, endCoord, enemyKingPos);
+            isCheckForArchive = (status === "Check");
+            
+            if (isCheckForArchive) {
+                this.state.subState = "Check";
+                console.log(`%c 🛰️ SIGNAL GEN: [${opponentColor}] King is in Check. subState standardized to: ${this.state.subState}`, "color: yellow; background: black; font-weight: bold;");
+            } else {
+                console.log("🛰️ SIGNAL GEN: Clean move. No check detected.");
+            }
+        }
+    } catch (e) {
+        console.warn("Archiver Bridge: Check detection skipped.");
+    }
+
+    const moveEvent = new CustomEvent('cypherMoveProcessed', {
+        detail: {
+            actor: actor, from: startCoord, to: endCoord,
+            // Include both standard capture flips and protocol-based flips
+            isFlip: !!moveRecord.isFlip || flipVictoryDetected, 
+            isCapture: !!moveRecord.isCapture,
+            isCheck: isCheckForArchive,
+            subState: this.state.subState, 
+            activeTurn: this.state.activeTurn 
+        }
+    });
+    window.dispatchEvent(moveEvent);
+
+    // 7. TERMINATION & RENDERING
+    if (moveRecord.isFlip || flipVictoryDetected) {
+        this.handleTermination(startCoord, endCoord); 
+        // We return here because the game is over; no need to advance turn.
+        return; 
+    }
+
+    // --- REPETITION PROTOCOL ---
+    if (moveRecord.isCapture) {
+        this.state.positionHistory = [];
+    } else {
+        const currentPos = this.generateBoardFingerprint();
+        this.state.positionHistory.push(currentPos);
+
+        const occurrences = this.state.positionHistory.filter(p => p === currentPos).length;
+        if (occurrences >= 3) {
+            console.warn("🛑 PROTOCOL TRAP: Threefold Repetition Detected.");
+            this.renderBoard(); 
+            this.terminateGame("DRAW BY REPETITION", "None");
+            return; 
+        }
+    }
+    
+    // --- 8. UPDATE COUNTERS & INVASION ---
+    // Preserving Bob's vital tactical tracking fields cleanly
+    this.state.counters.moveRecord++;
+    this.state.counters.transition++;
+    
+    this.renderBoard();
+    console.log("🏁 EXIT: executeMove complete. Handing off to advanceTurn...");
+    this.advanceTurn();
+},
+
+announceCheckStatus: function() {
+    const activeColor = this.state.activeTurn;
+    const kingPos = this.findKing(activeColor.toLowerCase());
+    
+    // Check if the current King is safe in its current position
+    if (!this.isMoveSafeForKing(kingPos, kingPos)) {
+        console.log(`%c ⚡ ALERT: ${activeColor} King is in CHECK! %c`, 
+            "color: white; background: red; font-weight: bold;", "");
+        return true;
+    }
+    return false;
+},
+
+detectStateTransition: function(moveRecord) {
+    const piece = moveRecord.piece;
+    const fromS = moveRecord.fromSector; 
+    const toS = moveRecord.toSector;
+
+    // 1. UNIVERSAL INVASION TRIGGER (RESTRICTED TO MAJOR PIECE CAPTURES)
+    if (moveRecord.isCapture && 
+        moveRecord.targetPieceType !== 'Pawn' && 
+        (fromS === 'C' || fromS === 'B') && 
+        toS === 'F') {
+        
+        this.state.triggeringColor = piece.color.toLowerCase();
+        
+        // FORCE the state and counter here
+        this.state.counters.invasion = 2; 
+        this.state.subState = 'FI';
+        
+        console.log(`%c ☢️ STATE CHANGE: Field Invasion armed by ${this.state.triggeringColor}`, "color: #ff4500; font-weight: bold;");
+        return; 
+    }
+
+    // 2. COURT ENTRY TRIGGER
+    if (piece.type.toLowerCase() === 'spy' && fromS === 'C' && toS !== 'C') {
+        this.state.triggeringColor = piece.color.toLowerCase(); 
+        this.state.counters.courtEntry = 4;
+        this.state.subState = 'CE'; // Explicitly set it here too
+        console.log(`☢️ STATE CHANGE: Court Entry window reserved for ${this.state.triggeringColor}`);
+        return;
+    }
+
+   // 3. THE PROTECTIVE SHIELD
+    if (this.state.counters.courtEntry === 0 && this.state.counters.invasion === 0) {
+        if (this.state.subState !== 'Check') { 
+            this.state.subState = 'Normal';
+            this.state.triggeringColor = null;
+        }
+    } else {
+        // If counters ARE active, keep the subState locked to the current protocol
+        if (this.state.counters.invasion > 0) {
+            this.state.subState = 'FI';
+        } else if (this.state.counters.courtEntry > 0) {
+            this.state.subState = 'CE';
+        }
+    }
+},
+
+updateBoardState: function() {
+    let detectedState = "D1"; 
+    const board = this.boardIndex;
+
+    // Logic to find highest Pawn-based state (D1, D2, or D3)
+    for (const coord in board) {
+        const piece = board[coord].piece;
+        if (!piece || piece.type !== 'Pawn') continue;
+        const row = parseInt(coord.slice(1));
+
+        if ((piece.color === 'white' && row === 9) || (piece.color === 'black' && row === 1)) {
+            detectedState = "D3"; 
+            break; 
+        }
+        if (detectedState === "D1" && ((piece.color === 'white' && (row === 7 || row === 8)) || (piece.color === 'black' && (row === 2 || row === 3)))) {
+            detectedState = "D2";
+        }
+    }
+
+    const stateRank = { "D1": 1, "D2": 2, "D3": 3 };
+    const currentRank = stateRank[this.state._defaultState] || 1;
+    const newRank = stateRank[detectedState];
+
+    // Only move forward in rank, never backward
+    if (newRank > currentRank) {
+        console.log(`%c 🔒 HIERARCHY ESCALATION: ${detectedState} %c`, "color: white; background: #800000;");
+        this.state._defaultState = detectedState;
+    }
+},
+
+evaluateProximity: function(actor, endCoord) {
+    const adjacents = this.getAdjacentCoords(endCoord);
+    
+    adjacents.forEach(adjCoord => {
+        const target = this.boardIndex[adjCoord].piece;
+        if (!target) return;
+
+        // Run the 2.a-2.d Flip Logic
+        // This checks if the actor (e.g., King) neutralizes the target (e.g., Spy)
+        const isGameOver = this.resolveFlipVictory(endCoord, adjCoord);
+        
+        if (isGameOver) {
+            this.state.activeTurn = "GameOver";
+        }
+    });
+},
+
+scanCourtLineForKing: function(landingCoord, actorColor, targetType = 'King', ignoreCoords = []) {
+    const board = this.boardIndex;
+    const aColor = actorColor.toLowerCase();
+    const opponentColor = (aColor === 'white') ? 'black' : 'white';
+    
+    const landingRow = parseInt(landingCoord.slice(1));
+    const allCols = ['z', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'];
+    const landingColIdx = allCols.indexOf(landingCoord.charAt(0));
+
+    let coordsToScan = [];
+
+    // 1. ORTHOGONAL (Vertical & Horizontal)
+    for (let r = 0; r <= 10; r++) coordsToScan.push(`${allCols[landingColIdx]}${r}`);
+    allCols.forEach(c => coordsToScan.push(`${c}${landingRow}`));
+
+    // 2. DIAGONAL (Four 45-degree vectors)
+    const directions = [
+        { dc: 1, dr: 1 }, { dc: 1, dr: -1 }, 
+        { dc: -1, dr: 1 }, { dc: -1, dr: -1 }
+    ];
+
+    directions.forEach(dir => {
+        let currC = landingColIdx + dir.dc;
+        let currR = landingRow + dir.dr;
+        // Scan until we hit the physical edge of the board index
+        while (currC >= 0 && currC <= 9 && currR >= 0 && currR <= 10) {
+            coordsToScan.push(`${allCols[currC]}${currR}`);
+            currC += dir.dc;
+            currR += dir.dr;
+        }
+    });
+
+    for (let checkCoord of coordsToScan) {
+        if (checkCoord === landingCoord) continue; 
+        if (ignoreCoords.includes(checkCoord)) continue;
+
+        const p = board[checkCoord]?.piece;
+        if (p && p.type === targetType && p.color.toLowerCase() === opponentColor) {
+            if (this.isPathClear(landingCoord, checkCoord, ignoreCoords)) {
+                return { piece: p, coord: checkCoord };
+            }
+        }
+    }
+    return null;
+},
+
+getMirroredPieceAt: function(coord) {
+    const sector = this.getSector(coord); // Returns 'C', 'B', or 'F'
+    
+    // 1. COURT PERIMETER (Source 3)
+    if (sector === 'C') {
+        if (coord === 'd0' || coord === 'd10') return 'Cs'; // Spy [cite: 7]
+        if (coord === 'e0' || coord === 'e10') return 'Ck'; // King [cite: 9]
+        // Add other Court mirrors (Rooks at b0/g0, etc. as per your set-up)
+        return 'Cp'; // Default to Court Pawn square
+    }
+
+    // 2. BORDER EQUATOR (Source 4)
+    if (sector === 'B') {
+        // Row 5 squares (a5-h5)
+        return 'Bp'; // Standard Border Pawn identity
+    }
+
+    // 3. FIELD SECTOR (Source 5, 6)
+    // For the Field, we use the SectorPieceTag which handles the F/Fp/Fffp evolution
+    // using the actor's current type to determine the "mirrored" relationship.
+    return null; 
+},
+
+generateMoveTags: function(piece, startCoord, endCoord) {
+    // 1. Tag-type #2: PRESENT Sectorpiece (e.g., 'Cs')
+    const attackerTag = this.getSectorPieceTag(piece, startCoord);
+
+    // 2. Tag-type #3: Sectorpiece of CLICK DESTINATION
+    const targetPiece = this.boardIndex[endCoord].piece;
+    let targetTag;
+
+    if (targetPiece) {
+        // If occupied, use the occupant's identity (e.g., 'Ck')
+        targetTag = this.getSectorPieceTag(targetPiece, endCoord);
+    } else {
+        // CCCM Protocol: Identify the destination as the ACTOR'S identity 
+        // at that new coordinate (e.g., Spy moving to e0 becomes 'Cs')
+        targetTag = this.getSectorPieceTag(piece, endCoord);
+    }
+
+    return {
+        attackerTag: attackerTag, 
+        targetTag: targetTag      
+    };
+},
+
+
+checkTurnPermission: function(pieceColor) {
+    const manager = this;
+    const movingColor = pieceColor.toLowerCase();
+    const activeColor = manager.state.activeTurn.toLowerCase();
+    
+    // 1. THE EXPLICIT ACTIVE TURN CHECK
+    // A player can only interact with pieces matching the engine's active turn clock
+    if (movingColor !== activeColor) {
+        console.warn(`CCCM DENIAL: Attempted to move ${movingColor} piece during ${activeColor}'s turn.`);
+        return false;
+    }
+
+    // 2. TERMINATION SAFETY GUARD
+    if (manager.state.activeTurn === 'GameOver') {
+        return false;
+    }
+
+    return true;
+},
+
+advanceTurn: function() {
+    const previousPlayer = this.state.activeTurn; // 'White' or 'Black'
+    const currentPlayer = (previousPlayer === 'White') ? 'Black' : 'White';
+    this.state.activeTurn = currentPlayer;
+
+    // 1. TICK DOWN COUNTERS AFTER THE ACTION CONSUMPTION
+    // Sub-states are single-action windows. If a counter is active, it tracks the remaining lifetime.
+    if (this.state.counters.courtEntry > 0) this.state.counters.courtEntry--;
+    if (this.state.counters.invasion > 0) this.state.counters.invasion--;
+
+    // 2. SET SUBSTATE BASED ON LOGICAL WINDOWS
+    if (this.state.counters.invasion > 0) {
+        this.state.subState = "FI";
+    } else if (this.state.counters.courtEntry > 0) {
+        this.state.subState = "CE";
+    } else {
+        this.state.subState = "Normal";
+        this.state.triggeringColor = null; // Clean up old historical tags safely
+    }
+
+    console.log(`🔍 GATEKEEPER: ${currentPlayer} turn. State: ${this.state.subState} | CE Counter: ${this.state.counters.courtEntry} | FI Counter: ${this.state.counters.invasion}`);
+
+    this.state.selectedPiece = null;
+    this.renderBoard();
+
+// 🤖 AI ENGINE HANDOFF HOOK
+    if (currentPlayer === 'Black') {
+        console.log("🤖 GATEKEEPER: Awakening AI Module (Bob)...");
+        
+        // Use a safe timeout to let the DOM finish rendering the board before Bob clicks tiles
+        setTimeout(() => {
+            if (typeof playBobMove === 'function') {
+                playBobMove();
+            } else {
+                console.error("❌ CRITICAL: playBobMove() function is missing or not exposed globally in AI_Module_2.js!");
+            }
+        }, 300); // 300ms window allows visual updates to settle cleanly
+    }
+},
+
+buildPathArray: function(startCoord, endCoord) {
+    const colMap = ['z', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'];
+    const c1 = colMap.indexOf(startCoord.charAt(0)), r1 = parseInt(startCoord.slice(1));
+    const c2 = colMap.indexOf(endCoord.charAt(0)), r2 = parseInt(endCoord.slice(1));
+
+    const dc = Math.sign(c2 - c1), dr = Math.sign(r2 - r1);
+    let path = [];
+    
+    // Add the starting identity (e.g., 'Cs')
+    path.push(this.getSectorPieceTag(this.boardIndex[startCoord].piece, startCoord));
+
+    let currC = c1 + dc, currR = r1 + dr;
+    while (currC !== c2 || currR !== r2) {
+        const coord = `${colMap[currC]}${currR}`;
+        const p = this.boardIndex[coord].piece;
+        // If square is empty, push "n"[cite: 3], otherwise push the piece tag
+        path.push(p ? this.getSectorPieceTag(p, coord) : "n");
+        currC += dc; currR += dr;
+    }
+
+    // Add the ending identity (e.g., 'Ck')
+    path.push(this.getSectorPieceTag(this.boardIndex[endCoord].piece, endCoord));
+    return path.join(',');
+},
+
+isMatchForCourtFlip: function(pathString) {
+    const validPatterns = [
+        "Cs,n,Ck", "Cs,n,n,Ck", "Cs,n,n,n,Ck", "Cs,n,n,n,n,Ck", 
+        "Cs,n,n,n,n,n,Ck", "Cs,n,n,n,n,n,n,Ck", "Cs,n,n,n,n,n,n,n,Ck", 
+        "Cs,n,n,n,n,n,n,n,n,Ck", "Cs,n,n,n,n,n,n,n,n,n,Ck",
+        // Reversals
+        "Ck,n,Cs", "Ck,n,n,Cs", "Ck,n,n,n,Cs", "Ck,n,n,n,n,Cs", 
+        "Ck,n,n,n,n,n,Cs", "Ck,n,n,n,n,n,n,Cs", "Ck,n,n,n,n,n,n,n,Cs", 
+        "Ck,n,n,n,n,n,n,n,n,Cs", "Ck,n,n,n,n,n,n,n,n,n,Cs"
+    ];
+    return validPatterns.includes(pathString);
+},
+
+checkScan: function(attackerPiece, attackerPos, kingPos) {
+    const board = this.boardIndex;
+
+    // 1. EXISTENCE GUARDS (The "Shield")
+    if (!kingPos || !board[kingPos]) {
+        console.warn(`CORE DISRUPTION: King position [${kingPos}] is unreachable.`);
+        return "Safe"; 
+    }
+    
+    if (!attackerPiece) return "Safe";
+
+    const kingPiece = board[kingPos].piece;
+    
+    // 2. LOGIC VALIDATION
+    if (!kingPiece) return "Safe"; 
+    if (attackerPiece.color === kingPiece.color) return "Safe";
+
+    // 2. COORDINATE CALCULATIONS
+    const colMap = ['z', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'];
+    const x1 = colMap.indexOf(attackerPos[0]), y1 = parseInt(attackerPos.slice(1));
+    const x2 = colMap.indexOf(kingPos[0]), y2 = parseInt(kingPos.slice(1));
+    const dx = Math.abs(x2 - x1);
+    const dy = Math.abs(y2 - y1);
+
+    // 3. PHYSICAL RANGE & CAPTURE GEOMETRY GUARD
+    // This prevents "impossible" checks (like the vertical Pawn check you saw)
+    if (attackerPiece.type === 'Pawn') {
+        const dir = attackerPiece.color === 'white' ? 1 : -1;
+        // Pawns only check 1 square diagonally forward
+        const isDiagonalCapture = (dx === 1 && (y2 - y1) === dir);
+        if (!isDiagonalCapture) return "Safe";
+    } else if (attackerPiece.type === 'King') {
+        if (dx > 1 || dy > 1) return "Safe";
+} else if (attackerPiece.type === 'Knight') {
+        const startSector = this.getSector(attackerPos);
+        const endSector = this.getSector(kingPos);
+        
+        let isL = false;
+        // Apply the same gear-shift logic to see if the Knight can reach the King
+        if (startSector === 'C') {
+            isL = (dx === 3 && dy === 1) || (dx === 1 && dy === 3);
+        } else if (startSector === 'B') {
+            isL = (dx === 2 && dy === 1) || (dx === 1 && dy === 2) || (dx === 3 && dy === 1) || (dx === 1 && dy === 3);
+        } else {
+            isL = (dx === 2 && dy === 1) || (dx === 1 && dy === 2);
+        }
+
+        if (!isL) return "Safe";
+    } else if (attackerPiece.type === 'Rook') {
+        // 🚩 FIX: Rook only checks on straight horizontal or vertical lines
+        if (dx !== 0 && dy !== 0) return "Safe";
+    } else if (attackerPiece.type === 'Bishop') {
+        // 🚩 FIX: Bishop only checks on perfect diagonals
+        if (dx !== dy) return "Safe";
+    } else {
+        // Queen and Spy: Can check on any straight or diagonal line
+        const isLinear = (dx === 0 || dy === 0 || dx === dy);
+        if (!isLinear) return "Safe";
+    }
+
+    // 4. CCCM PROTOCOL (1.a - 1.d)
+    const attackerTag = this.getSectorPieceTag(attackerPiece, attackerPos);
+    const kingTag = this.getSectorPieceTag(kingPiece, kingPos);
+
+    // 1.a: Determine the physical reality (is path clear?)
+    const isActuallyClear = this.isPathClear(attackerPos, kingPos, true);
+    
+    // 1.b: Identify if the path SHOULD be clear (from JSON)
+    const pthCR_Permission = this.getCheckTableValue('D0_A_Chk_PthCR', attackerTag, kingTag);
+
+    // 1.c: Protocol Mismatch Check
+    // If reality (isActuallyClear) doesn't match the rule (pthCR_Permission)
+    if (isActuallyClear !== pthCR_Permission) {
+        
+        // 1.d: Verify final Check status in D0_ChkP
+        const finalCheckPermission = this.getCheckTableValue('D0_ChkP', attackerTag, kingTag);
+        
+        if (finalCheckPermission === true) {
+            console.log(`%c ⚠️ CHECK DETECTED: ${attackerTag} ➔ ${kingTag} %c`, "color: white; background: red;");
+            return "Check";
+        }
+    }
+
+    return "Safe";
+},
+
+verifyNoMismatch: function() {
+        const actingColor = this.state.activeTurn.toLowerCase();
+        const enemyColor = (actingColor === 'white') ? 'black' : 'white';
+        let enemyKingPos = null;
+
+        // 1. Efficient King Lookup
+        for (let coord in this.boardIndex) {
+            const p = this.boardIndex[coord].piece;
+            if (p && p.type === 'King' && p.color === enemyColor) {
+                enemyKingPos = coord;
+                break;
+            }
+        }
+
+        if (!enemyKingPos) return; 
+
+        // 2. Global Check Reset
+        // We assume safe until proven otherwise by the scan
+        let isEnemyInCheck = false;
+
+        // 3. Scan all acting pieces against the enemy King
+        for (let coord in this.boardIndex) {
+            const p = this.boardIndex[coord].piece;
+            if (p && p.color === actingColor) {
+                const status = this.checkScan(p, coord, enemyKingPos);
+                if (status === "Check") {
+                    console.log(`PROTOCOL ALERT: ${p.type} at ${coord} has King in Check.`);
+                    isEnemyInCheck = true;
+                    break; // Optimization: One piece in check is enough to trigger the state
+                }
+            }
+        }
+
+        // 4. Update Protocol State
+        // This 'subState' change is what the UI and AdvanceTurn logic will look for
+        if (isEnemyInCheck) {
+            this.state.subState = "Check";
+        } else if (this.state.subState === "Check") {
+            // Clear the check state if it no longer applies
+            this.state.subState = "Normal";
+        }
+    },
+
+getCheckTableValue: function(tableName, rowTag, colTag) {
+    const file = window.CheckScan;
+    if (!file || !file.rules || !file.rules[tableName]) return false;
+    
+    const row = file.rules[tableName][rowTag];
+    if (!row) return false;
+    
+    const val = row[colTag];
+    // Sanitize: "TRUE" or true becomes boolean true
+    return val === true || String(val).toUpperCase() === "TRUE";
+},
+
+resolveFlipVictory: function(actorCoord, isPreview = false) {
+    const board = this.boardIndex;
+    const actor = isPreview && this.state.selectedPiece 
+        ? this.state.selectedPiece.piece 
+        : (board[actorCoord]?.piece);
+
+    if (!actor) return false;
+
+    // --- PHASE A: ADJACENCY FLIPS (Standard Protocol) ---
+    const adjacents = this.getAdjacentCoords(actorCoord);
+    for (const adjCoord of adjacents) {
+        const target = board[adjCoord].piece;
+        if (!target || target.color === actor.color) continue;
+
+        const actorTag = this.getSectorPieceTag(actor, actorCoord);
+        const targetTag = this.getSectorPieceTag(target, adjCoord);
+
+        if (this.getFlipTableValue('D0_B_FLP', actorTag, targetTag)) {
+            if (this.getFlipTableValue('D0_B_FlpCal_AdjP', actorTag, targetTag)) {
+                if (isPreview) return true;
+                this.declareWinner(actor.color, `Flip: ${actorTag} vs ${targetTag}`);
+                return true;
+            }
+        }
+    }
+
+    // --- PHASE B: THE SHADOW LINE (CCCM Addendum & Non-Adjacent Archiving) ---
+  for (const coord in board) {
+    const p = board[coord].piece;
+    // We only trigger this if we find a Spy in Court
+    if (p && p.type === 'Spy' && this.getSector(coord) === 'C') {
+        const result = this.scanCourtLineForKing(coord, p.color);
+        if (result) {
+            const spyTag = this.getSectorPieceTag(p, coord); 
+            const kingTag = this.getSectorPieceTag(result.piece, result.coord);
+
+            // 🚩 AUTHORITY CHECK: Matches your CSV (Cs row, Ck col)
+            const isFlipAllowed = this.getFlipTableValue('D0_B_FLP', spyTag, kingTag);
+            const isNAdjAllowed = this.getFlipTableValue('D0_B_FlpCal_NAdjP', spyTag, kingTag);
+
+            if (isFlipAllowed && isNAdjAllowed) {
+                const pathString = this.buildPathArray(coord, result.coord);
+                
+                // Final Physical Check: Matches CCCM Addendum patterns
+                if (this.isMatchForCourtFlip(pathString)) {
+                    if (isPreview) return true;
+                    this.declareWinner(p.color, `CourtFlip@ via [${pathString}]`);
+                    return true;
+                }
+            }
+        }
+    }
+}
+    return false;
+},
+
+getFlipTableValue: function(tableName, rowTag, colTag) {
+        const file = window.FlipScan;
+        
+        // 1. DRILL CHECK: Ensure we go into .rules
+        if (!file || !file.rules || !file.rules[tableName]) {
+            console.warn(`🔎 FLIP SCANNER: Table ${tableName} missing in FlipScan.rules.`);
+            return false;
+        }
+        
+        const table = file.rules[tableName];
+        const row = table[rowTag];
+        
+        if (!row) {
+            // Log this only once to avoid console spam
+            return false;
+        }
+        
+        const val = row[colTag];
+
+        // 2. SANITIZATION: Convert "TRUE" or true into a real Boolean
+        return val === true || String(val).toUpperCase() === "TRUE";
+    },
+
+    isAdjacent: function(coord1, coord2) {
+        const adj = this.getAdjacentCoords(coord1);
+        return adj.includes(coord2);
+    },
+
+    declareWinner: function(color, reason) {
+        console.log(`%c 🏆 GAME OVER: ${color} Wins! %c`, "color: yellow; background: blue; font-size: 20px;", "");
+        alert(`GAME OVER: ${color} Wins!\nReason: ${reason}`);
+        this.state.subState = 'GameOver';
+    },
+
+validateProximityAxioms: function(actor, toCoord) {
+    const adjacents = this.getAdjacentCoords(toCoord);
+    
+    for (let neighbor of adjacents) {
+        const p = this.boardIndex[neighbor]?.piece;
+        if (!p || p === actor) continue; 
+
+        // 1. Spy-to-Spy (Universal Axiom)
+        if (actor.type === 'Spy' && p.type === 'Spy') return false;
+
+        // 2. Friendly King/Spy Proximity (Universal Axiom)
+        if (actor.color === p.color) {
+            if ((actor.type === 'Spy' && p.type === 'King') || 
+                (actor.type === 'King' && p.type === 'Spy')) {
+                return false;
+            }
+        }
+    }
+    return true;
+},
+
+checkFlipProtocol: function(actor, start, end) {
+    // 1. Identification
+    const attackerTag = this.getSectorPieceTag(actor, start);
+    
+    // We check the neighbors of the DESTINATION (end)
+    const adjacents = this.getAdjacentCoords(end);
+    
+    for (const adjCoord of adjacents) {
+        const target = this.boardIndex[adjCoord].piece;
+        if (!target) continue;
+        
+        // Friendly pieces don't flip each other
+        if (target.color === actor.color) continue;
+
+        const targetTag = this.getSectorPieceTag(target, adjCoord);
+
+        // 2. Protocol 2.c & 2.d: Verify Flip permission in JSON
+        const isFlipAllowed = this.getFlipTableValue('D0_B_FLP', attackerTag, targetTag);
+        const isAdjPermission = this.getFlipTableValue('D0_B_FlpCal_AdjP', attackerTag, targetTag);
+
+        if (isFlipAllowed && isAdjPermission) {
+            return true; // A valid flip is detected!
+        }
+    }
+    return false;
+},
+
+    // 10. SUB-STATE MANAGERS (Protocol Step 3)
+   handleStateTransitions: function(lastMove) {
+        if (!lastMove) return;
+
+        const player = lastMove.piece.color.toLowerCase();
+        const subStateActive = !!this.state.subState;
+
+        /**
+         * 1. EXIT LOGIC: Sub-states are "Single-Action" windows. 
+         * If a move is performed while a sub-state is active, that move consumes 
+         * and concludes the sub-state.
+         */
+        if (subStateActive) {
+            console.log(`PROTOCOL: ${this.state.subState} concluded by ${player}'s action.`);
+            this.state.subState = null;
+            this.state.triggeringColor = null;
+            // We return here because a move that resolves a sub-state 
+            // cannot simultaneously trigger a new one.
+            return; 
+        }
+
+        /**
+         * 2. COURT_ENTRY TRIGGER
+         * Trigger: Spy moves from Court ('C') to a non-Court sector.
+         */
+        if (lastMove.piece.type === 'Spy' && 
+            lastMove.fromSector === 'C' && 
+            lastMove.toSector !== 'C') {
+            
+            this.state.subState = 'Court_Entry';
+            this.state.triggeringColor = player.toLowerCase();
+            console.log(`SUB-STATE START: Court_Entry triggered by ${player}.`);
+            return;
+        }
+
+        /**
+         * 3. FIELD_INVASION TRIGGER
+         * Trigger: Major piece capture from C/B into Field ('F').
+         */
+        if (lastMove.isCapture && 
+            (lastMove.fromSector === 'C' || lastMove.fromSector === 'B') && 
+            lastMove.toSector === 'F' && 
+            lastMove.piece.type !== 'Pawn') {
+            
+            this.state.subState = 'Field_Invasion';
+            console.log("SUB-STATE START: Field_Invasion active.");
+            return;
+        }
+    },
+
+    // Logic for Rule VI.xvi-xviii: The Re-take Rule
+    executeReTake: function(actorCoord, targetCoord) {
+        const actorPiece = this.boardIndex[actorCoord].piece;
+        const targetPiece = this.boardIndex[targetCoord].piece;
+
+        // REVISION: Correctly fetch sector from the coordinate, not the piece object
+        if (this.getSector(actorCoord) === 'F') {
+            console.log("RE-TAKE PROTOCOL: Field piece retaliating.");
+            
+            // 1. Perform physical capture
+            this.executeMove(actorCoord, targetCoord);
+            
+            // 2. Immediate State Resolution
+            // A Re-Take successfully concludes the Field_Invasion sub-state.
+            this.state.subState = null; 
+            this.state.triggeringColor = null;
+        } else {
+            console.warn("Protocol Violation: Re-Take attempted from non-Field sector.");
+        }
+    },
+
+    terminateGame: function(reason, winner) {
+    console.log(`%c GAME OVER: ${reason}. Winner: ${winner ? winner.toUpperCase() : 'NONE'} %c`, 
+        "color: white; background: red; font-weight: bold;", "");
+    
+    this.state.activeTurn = "GameOver";
+    this.state.subState = "GameOver"; 
+    
+    const statusDisplay = document.getElementById('status-message');
+    if (statusDisplay) {
+        // Handle Draw vs Victory text
+        if (winner === "None" || !winner) {
+            statusDisplay.innerHTML = `<h1>${reason}</h1><p>STALEMATE OF THE SHADOWS</p>`;
+        } else {
+            statusDisplay.innerHTML = `<h1>${reason}</h1><p>${winner.toUpperCase()} VICTORY</p>`;
+        }
+        statusDisplay.classList.add('active');
+    }
+
+    const moveLog = document.getElementById('move-history') || document.querySelector('.archiver-list');
+    if (moveLog && moveLog.lastElementChild) {
+        const lastEntry = moveLog.lastElementChild;
+        
+        if (reason === "Checkmate") {
+            lastEntry.innerHTML += " #"; 
+        } else if (reason === "FLIP VICTORY") {
+            lastEntry.innerHTML += " @"; 
+        } else if (reason === "DRAW BY REPETITION") {
+            lastEntry.innerHTML += " ="; // The standard chess notation for Draw
+        }
+    }
+},
+
+    handleTermination: function(startCoord, endCoord) {
+    const actor = this.boardIndex[endCoord].piece;
+    console.log(`%c 🏁 TERMINATION TRIGGERED at ${endCoord} %c`, "color: white; background: red; font-weight: bold;", "");
+    
+    // Determine the winner based on the piece that just moved
+    const winner = actor.color.charAt(0).toUpperCase() + actor.color.slice(1).toLowerCase();
+    
+    // Call the existing terminateGame function to lock the state and show UI
+    this.terminateGame("FLIP VICTORY", winner);
+},
+
+isSpyProximityLegal: function(movingPiece, endCoord, startCoord) {
+    if (movingPiece.type !== 'Spy') return true;
+
+    // 1. THE BYPASS: If this is a game-ending Flip, proximity rules are ignored
+    const isFlip = this.checkFlipProtocol(movingPiece, startCoord, endCoord);
+    if (isFlip) return true; 
+
+    // 2. Spy-to-Spy illegal proximity
+    const neighbors = this.getAdjacentCoords(endCoord);
+    for (let adjCoord of neighbors) {
+        if (adjCoord === startCoord) continue; 
+        const occupant = this.boardIndex[adjCoord].piece;
+        if (occupant && occupant.type === 'Spy') return false; 
+    }
+
+    // 3. Spy-to-King illegal proximity (Standard Moves only)
+    // We only block this if it's NOT a flip move.
+    if (this.isAdjacentToAnyKing(endCoord)) {
+        console.warn("🛑 PROXIMITY ERROR: Spy cannot land adjacent to a King.");
+        return false;
+    }
+
+    return true;
+},
+
+    checkAdjacency: function(pos1, pos2) {
+        const colMap = ['z', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'];
+        
+        const c1 = colMap.indexOf(pos1.charAt(0));
+        const r1 = parseInt(pos1.slice(1));
+        
+        const c2 = colMap.indexOf(pos2.charAt(0));
+        const r2 = parseInt(pos2.slice(1));
+
+        return Math.abs(c1 - c2) <= 1 && Math.abs(r1 - r2) <= 1;
+    },
+
+isPathClear: function(start, end, isCheckScan = false) {
+    const colMap = ['z', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'];
+    const c1 = colMap.indexOf(start.charAt(0));
+    const r1 = parseInt(start.slice(1));
+    const c2 = colMap.indexOf(end.charAt(0));
+    const r2 = parseInt(end.slice(1));
+
+    const dc = c2 - c1;
+    const dr = r2 - r1;
+
+    // 1. NON-LINEAR PIECE GUARD
+    // If it's not a straight line (horizontal, vertical, or 45-degree diagonal),
+    // it's likely a Knight or a leap. We don't scan paths for leapers.
+if (dc !== 0 && dr !== 0 && Math.abs(dc) !== Math.abs(dr)) {
+        const piece = this.boardIndex[start].piece;
+        
+        if (piece && piece.type === 'Knight') {
+            // Ensure both 2,1 and 3,1 jumps are treated as leaps
+            const isLegalL = (Math.abs(dc) === 2 && Math.abs(dr) === 1) || 
+                             (Math.abs(dc) === 1 && Math.abs(dr) === 2) ||
+                             (Math.abs(dc) === 3 && Math.abs(dr) === 1) || 
+                             (Math.abs(dc) === 1 && Math.abs(dr) === 3);
+            
+            if (isLegalL) return true;
+        }
+
+        if (isCheckScan) return false;
+        return true; 
+    }
+
+    const stepC = Math.sign(dc);
+    const stepR = Math.sign(dr);
+
+    let currC = c1 + stepC;
+    let currR = r1 + stepR;
+
+    // 2. SAFETY COUNTER (Circuit Breaker)
+    let safety = 0;
+
+    while ((currC !== c2 || currR !== r2) && safety < 12) {
+    safety++;
+    const checkCoord = `${colMap[currC]}${currR}`;
+    const obstacle = this.boardIndex[checkCoord]?.piece;
+
+    if (obstacle) {
+        // 🚩 REMOVED: The "invisible spy" check. 
+        // Any piece (Spy or otherwise) now blocks the path.
+        if (checkCoord !== end) { 
+            return false; 
+        }
+    }
+    currC += stepC;
+    currR += stepR;
+}
+    return true;
+},
+    /**
+     * Protocol Step 2.e: Virtual Move Validation
+     * Prevents any move that would result in a "Self-Check" violation.
+     */
+isMoveSafeForKing: function(start, end) {
+    const board = this.boardIndex;
+    const movingPiece = board[start].piece;
+    if (!movingPiece) return true;
+
+    const originalDestinationPiece = board[end].piece;
+    const kingColor = movingPiece.color.toLowerCase();
+
+    // 1. VIRTUAL MOVE
+    board[end].piece = movingPiece;
+    board[start].piece = null;
+
+    // 🚩 THE INTEGRITY CHECK
+    let kingPos = (movingPiece.type === 'King') ? end : this.findKing(kingColor);
+    
+    let isSafe = true;
+
+    if (!kingPos) {
+        // If we can't find the King, it means the King was captured in this simulation.
+        // A move that allows the King to be captured is NEVER safe.
+        isSafe = false; 
+    } else {
+        // 2. UNIVERSAL SCAN
+        for (const coord in board) {
+            const attacker = board[coord].piece;
+            if (attacker && attacker.color.toLowerCase() !== kingColor) {
+                if (this.checkScan(attacker, coord, kingPos) === "Check") {
+                    isSafe = false;
+                    break;
+                }
+            }
+        }
+    }
+
+    // 3. RESTORE PHYSICAL REALITY
+    board[start].piece = movingPiece;
+    board[end].piece = originalDestinationPiece;
+
+    return isSafe;
+},
+
+findKing: function(color) {
+        const board = this.boardIndex;
+        // Standardize to lowercase to match your initializePieces setup
+        const targetColor = color.toLowerCase(); 
+        
+        for (const coord in board) {
+            const piece = board[coord].piece;
+            if (piece && piece.type === 'King' && piece.color.toLowerCase() === targetColor) {
+                return coord;
+            }
+        }
+        return null;
+    },
+
+isCheckmate: function(playerColor) {
+    const manager = this; // Use 'this' to ensure we stay in context
+    const board = this.boardIndex;
+    
+    const kingPos = this.findKing(playerColor);
+    if (!kingPos) return false;
+
+    // 1. Verify if the King is actually in Check first
+    let isKingCurrentlyInCheck = false;
+    for (const coord in board) {
+        const p = board[coord].piece;
+        if (p && p.color.toLowerCase() !== playerColor.toLowerCase()) {
+            if (this.checkScan(p, coord, kingPos) === "Check") {
+                isKingCurrentlyInCheck = true;
+                break; 
+            }
+        }
+    }
+
+    if (!isKingCurrentlyInCheck) return false; 
+
+    // 2. THE ESCAPE SCAN
+    // We must check EVERY piece of the current player to see if ANY move resolves the check
+    for (const startCoord in board) {
+        const piece = board[startCoord].piece;
+        if (!piece || piece.color.toLowerCase() !== playerColor.toLowerCase()) continue;
+
+        for (const endCoord in board) {
+            if (startCoord === endCoord) continue;
+
+            const targetPiece = board[endCoord].piece;
+            const isCapture = !!targetPiece;
+
+            // Basic Collision/Friendly Fire Guard
+            if (isCapture && targetPiece.color.toLowerCase() === piece.color.toLowerCase()) continue;
+
+            // --- THE CROSS-SECTOR GATE ---
+            // Ensure we generate tags for the specific sectors involved
+            const tags = this.generateMoveTags(piece, startCoord, endCoord);
+            const tableKey = this.getPermissionTable(isCapture ? "capture" : "move", piece.color);
+            const table = window.MasterRules[tableKey];
+
+            // 🚩 THE FIX: Check if the protocol allows the move to the destination (e.g. into Court)
+            let rawPermission = table && table[tags.attackerTag] ? table[tags.attackerTag][tags.targetTag] : null;
+            
+            // Field Fallback
+            if (rawPermission === null && this.getSector(endCoord) === 'F') {
+                rawPermission = true; 
+            }
+
+            const isAllowedByProtocol = (rawPermission === true || String(rawPermission).toUpperCase() === "TRUE");
+
+            if (isAllowedByProtocol) {
+                // Check physical line-of-sight and leap mechanics
+                if (this.checkBoilerplateMovement(piece, startCoord, endCoord) && this.isPathClear(startCoord, endCoord)) {
+                    
+                    const proximityPass = this.validateProximityAxioms(piece, endCoord) && 
+                                          this.isSpyProximityLegal(piece, endCoord, startCoord);
+
+                    // 🚩 THE ULTIMATE TRUTH: Simulation
+                    // isMoveSafeForKing will virtually place the King in the Court.
+                    // Because your checkScan uses CheckScan.json, if there is no Court Spy (Cs),
+                    // then no piece can 'Check' the King in the Court, and this returns TRUE.
+                    if (proximityPass && this.isMoveSafeForKing(startCoord, endCoord)) {
+                        console.log(`✅ ESCAPE FOUND: ${piece.type} to ${endCoord} (${this.getSector(endCoord)})`);
+                        return false; 
+                    }
+                }
+            }
+        }
+    }
+    
+    return true; 
+},
+
+handleSquareClick: function(coord) {
+    if (this.state.activeTurn === 'GameOver') return; 
+    
+    const board = this.boardIndex;
+    const clickedSquare = board[coord];
+    const selected = this.state.selectedPiece;
+
+    // --- PHASE 1: SELECTION ---
+    if (!selected && clickedSquare.piece) {
+        if (this.checkTurnPermission(clickedSquare.piece.color)) {
+            this.state.selectedPiece = { coord: coord, piece: clickedSquare.piece };
+            this.renderBoard(); 
+        }
+        return;
+    }
+
+    // --- PHASE 2: TARGETING ---
+    if (selected) {
+        if (selected.coord === coord) {
+            this.state.selectedPiece = null;
+            this.renderBoard();
+            return;
+        }
+
+        const start = selected.coord;
+        const end = coord;
+        const actor = selected.piece;
+        const targetPiece = board[end].piece;
+        
+        const isCapture = !!targetPiece; 
+
+        // FRIEND-OR-FOE GUARD:
+        if (targetPiece && targetPiece.color === actor.color) {
+            console.warn("🛑 PROTOCOL VIOLATION: Friendly fire is not permitted.");
+            this.state.selectedPiece = null;
+            this.renderBoard();
+            return;
+        }
+        
+        // 1. PHYSICAL PATH CHECK 
+        if (!this.checkBoilerplateMovement(actor, start, end)) {
+            this.state.selectedPiece = null;
+            this.renderBoard();
+            return;
+        }
+
+        if (!this.isPathClear(start, end)) {
+            console.error(`🛑 COLLISION: Path to ${end} is blocked.`);
+            this.state.selectedPiece = null;
+            this.renderBoard();
+            return;
+        }
+
+        // 2. INITIALIZE FLIP STATUS
+        let isFlip = this.resolveFlipVictory(end, true); 
+
+        // Determine Table: D1_CpP (Capture) or D1_MvP (Move)
+        const tableKey = this.getPermissionTable(isCapture ? "capture" : "move", actor.color);
+        const rulesRef = window.MasterRules.rules || window.MasterRules;
+        const table = rulesRef[tableKey];
+
+        if (!table) {
+            console.error(`🛑 FAIL: Table [${tableKey}] not found.`);
+            return;
+        }
+
+        // =========================================================================
+        // 🎛️ CORE MATRIX STRUCTURAL INTEGRITY VALIDATION
+        // =========================================================================
+        const tags = this.generateMoveTags(actor, start, end);
+        const rawPermission = table[tags.attackerTag] ? table[tags.attackerTag][tags.targetTag] : null;
+
+        let isMoveAllowedByProtocol = (rawPermission === true || String(rawPermission).toUpperCase() === "TRUE");
+
+        if (!isMoveAllowedByProtocol) {
+            console.warn(`🛑 PROTOCOL REJECTION: Move from ${start} to ${end} denied by Table [${tableKey}] (${tags.attackerTag} -> ${tags.targetTag}).`);
+            this.state.selectedPiece = null;
+            this.renderBoard(); 
+            return;             
+        }
+        
+        console.log(`📡 PROTOCOL ACCESS: [${tableKey}] cleared move (${tags.attackerTag} -> ${tags.targetTag}).`);
+
+       // 5. SAFETY & AXIOMS
+        const isSafe = this.isMoveSafeForKing(start, end);
+        const isAxiomValid = this.validateProximityAxioms(actor, end);
+        const isLegalSpy = this.isSpyProximityLegal(actor, end, start);
+        const proximityPass = (isAxiomValid && isLegalSpy) || isFlip;
+
+        // =========================================================================
+        // 🏆 PHASE 3: FINAL VALIDATION GATE & DUAL-VECTOR REGISTRY
+        // =========================================================================
+        if (isFlip || (isMoveAllowedByProtocol && isSafe && proximityPass)) {
+            
+            // --- BETA-CHECK SCAN (Protocol 5.a) ---
+            const opponentColor = (actor.color === 'white') ? 'black' : 'white';
+            const enemyKingPos = this.findKing(opponentColor);
+            
+            // Simulation for accurate check detection
+            const originalEndPiece = board[end].piece;
+            board[end].piece = actor;
+            board[start].piece = null;
+
+            if (this.checkScan(actor, end, enemyKingPos) === "Check") {
+                this.state.subState = "Check";
+                console.log(`%c 🛰️ SIGNAL: ${actor.color} generates Check at ${end}`, "color: yellow; background: black;");
+            }
+
+            // Revert simulation
+            board[start].piece = actor;
+            board[end].piece = originalEndPiece;
+
+            // 🎯 THE SECURE FIXED HUMAN CHRONO-REGISTRY LOG (WITH COLOR GUARD)
+            if (actor.color === 'white') {
+                const currentMRValue = this.state.counters.moveRecord + 1;
+                const turnNum = String(currentMRValue).padStart(3, '0');
+                
+                const sourceIdentity = getPieceIdentity(actor, start);
+                const normalizedPieceToken = sourceIdentity.split(':')[0]; 
+
+                const registryEntry = `W${turnNum} ${normalizedPieceToken} ${start}->${end}`;
+                this.state.cypherRegistry.push(registryEntry); 
+                console.log(`📜 HUMAN REGISTRY ANCHOR SECURED: [${registryEntry}]`);
+            }
+
+            // Execute final state changes and clean up selections
+            this.state.selectedPiece = null; 
+            this.executeMove(start, end, isFlip); 
+            
+        } else {
+            this.state.selectedPiece = null;
+            this.renderBoard();
+        }
+    }
+},
+
+findPieceOnBoard: function(type, color) {
+    const board = this.boardIndex;
+    for (let coord in board) {
+        const p = board[coord].piece;
+        if (p && p.type === type && p.color === color) {
+            return { piece: p, coord: coord };
+        }
+    }
+    return null;
+},
+
+getAdjacentCoords: function(coord) {
+        const colMap = ['z', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'];
+        const colIdx = colMap.indexOf(coord.charAt(0));
+        const row = parseInt(coord.slice(1));
+        const neighbors = [];
+
+        for (let dc = -1; dc <= 1; dc++) {
+            for (let dr = -1; dr <= 1; dr++) {
+                if (dc === 0 && dr === 0) continue;
+                
+                const targetColIdx = colIdx + dc;
+                const targetRow = row + dr;
+
+                if (targetColIdx >= 0 && targetColIdx <= 9 && targetRow >= 0 && targetRow <= 10) {
+                    const nextCoord = `${colMap[targetColIdx]}${targetRow}`;
+                    if (this.boardIndex[nextCoord]) {
+                        neighbors.push(nextCoord);
+                    }
+                }
+            }
+        }
+        return neighbors;
+    },
+
+    /**
+     * Boolean check for direct adjacency between two points.
+     */
+    isAdjacent: function(coord1, coord2) {
+        const adj = this.getAdjacentCoords(coord1);
+        return adj.includes(coord2);
+    },
+
+    /**
+     * Scans neighbors to see if any King is present.
+     */
+    isAdjacentToAnyKing: function(coord) {
+        const neighbors = this.getAdjacentCoords(coord);
+        return neighbors.some(adj => {
+            const p = this.boardIndex[adj].piece;
+            return p && p.type === 'King';
+        });
+    },
+
+    /**
+     * Used by Axiom Enforcement to check for friendly Spy/King proximity.
+     */
+    isAdjacentToOwnSpy: function(piece, toCoord) {
+        const neighbors = this.getAdjacentCoords(toCoord);
+        return neighbors.some(adj => {
+            const neighbor = this.boardIndex[adj].piece;
+            return neighbor && neighbor.type === 'Spy' && neighbor.color === piece.color;
+        });
+    },
+
+    isAdjacentToOpposingSpy: function(piece, toCoord) {
+        const neighbors = this.getAdjacentCoords(toCoord);
+        return neighbors.some(adj => {
+            const neighbor = this.boardIndex[adj].piece;
+            return neighbor && neighbor.type === 'Spy' && neighbor.color !== piece.color;
+        });
+    }
+}; // End CypherManager
+
+
+// --- THE DECOUPLED ARCHIVER (The "Observer") ---
+window.CypherArchiver = {
+    moveCount: 1,
+
+    processArchiveEntry: function(data) {
+        const charMap = { 'King':'K', 'Queen':'Q', 'Rook':'R', 'Bishop':'B', 'Knight':'N', 'Spy':'S', 'Pawn':'' };
+        let notation = "";
+
+        // 1. Core Notation
+        if (data.subState === 'Court_Entry') {
+            const pChar = charMap[data.actor.type] || 'S';
+            notation = `${pChar}${data.from}/${data.to}/...`;
+        } else {
+            const pChar = charMap[data.actor.type];
+            if (data.isCapture) {
+                notation += (data.actor.type === 'Pawn') ? data.from[0] : pChar;
+                notation += 'x' + data.to;
+            } else {
+                notation += pChar + data.to;
+            }
+        }
+
+        // 2. 🚩 STATUS SYMBOLS
+        if (data.isFlip) {
+            notation += "@";
+        } else if (data.activeTurn === "GameOver") {
+            notation += "#";
+        } else if (data.isCheck === true) { // Listen to the bridge
+            notation += "+";
+        }
+
+        this.writeToTerminal(notation);
+        this.moveCount++;
+    },
+
+    writeToTerminal: function(text) {
+        const history = document.getElementById('move-history');
+        if (!history) return;
+
+        const entry = document.createElement('div');
+        entry.className = 'terminal-line';
+        entry.style.fontFamily = "'Andale Mono', monospace";
+        entry.style.fontSize = "14px";
+        entry.style.color = "#00ff41"; // Classic terminal green
+        
+        const turnColor = CypherManager.state.lastMoveBy;
+        // Output format: [001] White: e4
+        entry.innerHTML = `<span style="opacity: 0.5;">[${String(this.moveCount).padStart(3, '0')}]</span> ` +
+                          `<span style="color: #008800; font-weight: bold;">${turnColor}:</span> ${text}`;
+        
+        history.appendChild(entry);
+        history.scrollTop = history.scrollHeight;
+    }
+};
+
+// --- THE BROADCAST LISTENER ---
+window.addEventListener('cypherMoveProcessed', function(e) {
+    window.CypherArchiver.processArchiveEntry(e.detail);
+});
+
+window.CypherManager.renderBoard = function() {
+    // 0. Safety Check: Don't render if MasterRules haven't loaded
+    if (!window.MasterRulesLoaded) return;
+
+    const boardElement = document.getElementById('chessboard');
+    const whiteBvEl = document.getElementById('white-bv');
+    const blackBvEl = document.getElementById('black-bv');
+
+    // --- 1. UPDATE DASHBOARD COUNTERS ---
+    if (whiteBvEl && blackBvEl) {
+        // We use a helper to sum up the values from your VALUE_MATRIX
+        whiteBvEl.innerText = this.calculateTotalValue('white');
+        blackBvEl.innerText = this.calculateTotalValue('black');
+    }
+    const topL = document.getElementById('top-labels');
+    const bottomL = document.getElementById('bottom-labels');
+    const leftL = document.getElementById('left-labels');
+    
+    const columns = ['z', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'];
+    const rows = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0];
+
+    // 1. CLEAR UI
+    boardElement.innerHTML = '';
+    if (topL) topL.innerHTML = '';
+    if (bottomL) bottomL.innerHTML = '';
+    if (leftL) leftL.innerHTML = '';
+
+    // 2. CALCULATE GLOBAL TURN PERMISSIONS (Optimization)
+    // We check this ONCE here, instead of 110 times in the loop.
+    const activeColor = this.state.activeTurn;
+    const canActiveColorMove = this.checkTurnPermission(activeColor);
+
+    // 3. INJECT LABELS (Top/Bottom)
+    columns.forEach(col => {
+        const divT = document.createElement('div');
+        divT.className = 'label';
+        divT.innerText = col.toUpperCase();
+        if (topL) topL.appendChild(divT);
+
+        const divB = divT.cloneNode(true);
+        if (bottomL) bottomL.appendChild(divB);
+    });
+
+    // 4. INJECT LABELS (Left)
+    rows.forEach(row => {
+        const div = document.createElement('div');
+        div.className = 'label';
+        div.innerText = row;
+        if (leftL) leftL.appendChild(div);
+    });
+
+    // 5. RENDER TILES
+    rows.forEach((row, rowIndex) => {
+        columns.forEach((col, colIndex) => {
+            const coord = `${col}${row}`;
+            const cellData = this.boardIndex[coord];
+            if (!cellData) return; // Truth Chain safety
+
+            const tile = document.createElement('div');
+            tile.id = coord;
+            tile.className = `tile ${cellData.sectorTag}-sector`;
+
+            // Selection Highlight
+            if (this.state.selectedPiece && this.state.selectedPiece.coord === coord) {
+                tile.classList.add('selected-tile');
+            }
+
+            // Texture Logic
+            const isOffwhite = (rowIndex + colIndex) % 2 === 0;
+            const stoneType = isOffwhite ? "Stone_Offwhite" : "Stone_Slate";
+            const textureNum = ((rowIndex * columns.length + colIndex) % 14) + 1;
+            tile.style.backgroundImage = `url('./assets/board_png/${stoneType}_${textureNum}.png')`;
+
+            // Piece Logic
+            if (cellData.piece) {
+                const img = document.createElement('img');
+                img.src = `./assets/${cellData.piece.asset}.png`; 
+                img.className = 'piece-img';
+                
+                // Use the pre-calculated permission + color match
+                const isMyTurn = (cellData.piece.color === activeColor) && canActiveColorMove;
+                img.classList.add(isMyTurn ? 'active' : 'dormant');
+                
+                tile.appendChild(img);
+            }
+
+            tile.onclick = () => this.handleSquareClick(coord);
+            boardElement.appendChild(tile);
+        });
+    });
+};
+
+window.CypherManager.calculateTotalValue = function(color) {
+    let total = 0;
+    
+    // Values aligned with your v47.7 protocol weights
+    const values = {
+        'King': 1000,
+        'Queen': 90,
+        'Rook': 50,
+        'Bishop': 30,
+        'Knight': 30,
+        'Pawn': 10,
+        'Spy': 50
+    };
+
+    for (const coord in this.boardIndex) {
+        const square = this.boardIndex[coord];
+        if (square && square.piece && square.piece.color === color) {
+            total += (values[square.piece.type] || 0);
+        }
+    }
+    return total;
+};
+
+async function initializeCypherEngine() {
+    try {
+        console.log("📥 SYSTEM: Initiating parallel download of Truth Chains...");
+
+        // 1. AWAIT FETCH ALL FOUR DATABASES (Using exact file naming conventions)
+        const [masterRules, turnManager, checkScan, flipScan] = await Promise.all([
+            fetch('MasterRules.json').then(r => { if (!r.ok) throw new Error('MasterRules 404'); return r.json(); }),
+            fetch('Turn_Manager.json').then(r => { if (!r.ok) throw new Error('Turn_Manager 404'); return r.json(); }),
+            fetch('CheckScan.json').then(r => { if (!r.ok) throw new Error('CheckScan 404'); return r.json(); }),
+            fetch('FlipScan.json').then(r => { if (!r.ok) throw new Error('FlipScan 404'); return r.json(); })
+        ]);
+
+        // 2. MOUNT THE DOWNLOADED PAYLOADS SECURELY TO WINDOW MEMORY
+        window.MasterRules = masterRules;
+        window.TurnManager = turnManager; 
+        window.CheckScan = checkScan; 
+        window.FlipScan = flipScan; 
+
+        window.MasterRulesLoaded = true;
+        console.log("SYSTEM: All Truth Chains Loaded. Checking logic bindings...");
+
+        // 3. SECURE THE METHOD CONDUITS
+        if (typeof window.CypherManager.findKing === 'function') {
+            const cm = window.CypherManager;
+            cm.handleSquareClick = cm.handleSquareClick.bind(cm);
+            cm.isMoveSafeForKing = cm.isMoveSafeForKing.bind(cm);
+            cm.findKing = cm.findKing.bind(cm);
+            cm.resolveFlipVictory = cm.resolveFlipVictory.bind(cm);
+            cm.scanCourtLineForKing = cm.scanCourtLineForKing.bind(cm);
+            cm.buildPathArray = cm.buildPathArray.bind(cm);
+            cm.isCheckmate = cm.isCheckmate.bind(cm);
+            cm.advanceTurn = cm.advanceTurn.bind(cm);
+            cm.terminateGame = cm.terminateGame.bind(cm);
+            cm.generateBoardFingerprint = cm.generateBoardFingerprint.bind(cm);
+            cm.executeMove = cm.executeMove.bind(cm); 
+        }
+        
+        // 4. GENERATE MAP GEOGRAPHY AND UI RUNNERS
+        window.CypherManager.initBoardIndex();
+        window.CypherManager.renderBoard(); 
+        console.log("SYSTEM: UI and Counter State Engines initialized.");
+
+    } catch (error) {
+        // This will now flawlessly catch file mismatches, json parsing errors, or runtime execution crashes!
+        console.error("CRITICAL: Failed to load Truth Chains:", error);
+    }
+}
+initializeCypherEngine();
+    </script>
+    <script src="cypher_moves.json"></script> 
+    <script src="AI_Module_2.js"></script>
+</body>
+</html>

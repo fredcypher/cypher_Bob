@@ -1,0 +1,241 @@
+{
+  "metadata": {
+    "generated": "4/25/2026, 11:13:40 AM"
+  },
+  "rules": {
+    "D0_A_Chk_PthCR": {
+      "Ck": {
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Cq": {
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Cb": {
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Cn": {
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Cr": {
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Cp": {
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Cs": {
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Bk": {
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Bq": {
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Bb": {
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Bn": {
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Br": {
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Bp": {
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Bs": {
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Fk": {
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Fq": {
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Fb": {
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Fn": {
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Fr": {
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Fp": {
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Ffp": {
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Fffp": {
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Fs": {
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      }
+    },
+    "D0_ChkP": {
+      "Ck": {
+        "Ck": false,
+        "Bk": true,
+        "Fk": true
+      },
+      "Cq": {
+        "Ck": false,
+        "Bk": true,
+        "Fk": true
+      },
+      "Cb": {
+        "Ck": false,
+        "Bk": true,
+        "Fk": true
+      },
+      "Cn": {
+        "Ck": false,
+        "Bk": true,
+        "Fk": true
+      },
+      "Cr": {
+        "Ck": false,
+        "Bk": true,
+        "Fk": true
+      },
+      "Cp": {
+        "Ck": false,
+        "Bk": true,
+        "Fk": true
+      },
+      "Cs": {
+        "Ck": false,
+        "Bk": true,
+        "Fk": true
+      },
+      "Bk": {
+        "Ck": false,
+        "Bk": true,
+        "Fk": true
+      },
+      "Bq": {
+        "Ck": false,
+        "Bk": true,
+        "Fk": true
+      },
+      "Bb": {
+        "Ck": false,
+        "Bk": true,
+        "Fk": true
+      },
+      "Bn": {
+        "Ck": false,
+        "Bk": true,
+        "Fk": true
+      },
+      "Br": {
+        "Ck": false,
+        "Bk": true,
+        "Fk": true
+      },
+      "Bp": {
+        "Ck": false,
+        "Bk": true,
+        "Fk": true
+      },
+      "Bs": {
+        "Ck": false,
+        "Bk": true,
+        "Fk": true
+      },
+      "Fk": {
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Fq": {
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Fb": {
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Fn": {
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Fr": {
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      },
+      "Fp": {
+        "Ck": false,
+        "Bk": true,
+        "Fk": true
+      },
+      "Ffp": {
+        "Ck": false,
+        "Bk": false,
+        "Fk": true
+      },
+      "Fffp": {
+        "Ck": true,
+        "Bk": false,
+        "Fk": false
+      },
+      "Fs": {
+        "Ck": false,
+        "Bk": false,
+        "Fk": false
+      }
+    }
+  }
+}
