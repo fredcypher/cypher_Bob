@@ -13,7 +13,7 @@ In this version, **Bob Lite 1.0**, Black's role is played by "Bob"—a lean, min
 >
 > ## License and Copyright
 
-> **Copyright (c) 2026 Your Name / C-chess. All Rights Reserved.**
+> **Copyright (c) 2026 DF Short / C-chess. All Rights Reserved.**
 > 
 > This source code is made public solely for educational, review, and demonstration purposes. 
 > 
