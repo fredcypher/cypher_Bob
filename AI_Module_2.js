@@ -441,8 +441,8 @@ function calculateMoveWeight(actor, actorCoord, targetSquare) {
         }
     }
 
-    // ====================================================
-    // EXPERIMENT: TELEMETRY REGISTRY-DRIVEN LINE-OF-SIGHT TRIPWIRE SCANNER
+// ====================================================
+    // STABILIZED KING COURT BANISHMENT & SURVIVAL SYSTEM
     // ====================================================
     if (actor.type === 'King') {
         const globalCheck = (typeof manager.isKingInCheck === 'function') 
@@ -457,40 +457,14 @@ function calculateMoveWeight(actor, actorCoord, targetSquare) {
             let escapeBonus = 0;
 
             if (globalCheck) {
-                escapeBonus += 800; 
-
-                if (targetSector === 'Court') {
-                    const registryHistory = manager.state.cypherRegistry || [];
-                    
-                    if (registryHistory.length > 0) {
-                        const lookbackWindow = registryHistory.slice(-2);
-                        let tripwireTriggered = false;
-
-                        for (const moveEntry of lookbackWindow) {
-                            if (moveEntry && moveEntry.startsWith("W") && moveEntry.includes(" Cs ")) {
-                                const parts = moveEntry.split(" ");
-                                const vector = parts[parts.length - 1];
-                                
-                                if (vector && vector.includes("->")) {
-                                    const spyCurrentSquare = vector.split("->")[1];
-                                    
-                                    if (typeof manager.isPathClear === 'function' && 
-                                        manager.isPathClear(spyCurrentSquare, targetSquare)) {
-                                        tripwireTriggered = true;
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-
-                        if (tripwireTriggered) {
-                            escapeBonus -= 30; 
-                            console.log(`🕸️ TRIPWIRE RADAR: Court square ${targetSquare} covered by White Spy line of sight (-30).`);
-                        }
-                    }
-                }
+                escapeBonus += 800; // Force immediate flight from verified check
             } else {
-                escapeBonus += 10; 
+                escapeBonus += 10;  // Standard passive positional weight
+            }
+
+            // 🚫 COURT BANISHMENT LOCK: Prevent King from wandering into the Flip-Zone
+            if (targetSector === 'Court') {
+                escapeBonus -= 900; // Drowns out the check escape bonus and Rule B1 completely!
             }
 
             score += escapeBonus;
@@ -707,6 +681,9 @@ function executeBobMove(move) {
             resolve();
         }
     });
+}
+
+console.log("✅ Bob's brain (AI_Module_2) and Map are successfully linked!");
 }
 
 console.log("✅ Bob's brain (AI_Module_2) and Map are successfully linked!");
