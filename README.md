@@ -1,4 +1,4 @@
-# C-chess (Cypher Chess) — Bob Lite v1.0
+# C-chess (Cypher Chess) — Bob Lite v2.0
 C-chess is an experimental chess variant. Its board geography is multi-sectored, permitting a range of piece movements depending on specific piece-sector alignments. 
 
 The variant features one novel piece—the **"Cypher" (or Spy)**, which served as the basis of the variant's original name, "Cypher Chess." That name has since been shortened to "C-chess."
