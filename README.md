@@ -5,9 +5,9 @@ The variant features one novel piece—the **"Cypher" (or Spy)**, which served a
 
 ---
 
-## The AI Engine: Bob Lite 1.0
+## The AI Engine: Bob Lite 2.0
 
-In this version, **Bob Lite 1.0**, Black's role is played by "Bob"—a lean, minimax-fueled AI. 
+In this version, **Bob Lite 2.0**, Black's role is played by "Bob"—a minimax-fueled AI. 
 
 > **Note:** This is an ongoing experimental development. A future release will feature a more advanced version of Bob.
 >
